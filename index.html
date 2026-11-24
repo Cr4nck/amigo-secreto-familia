@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" data-keep>
+<meta name="viewport" content="width=device-width, initial-scale=1" data-keep>
+<title data-keep>Amigo secreto familiar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" data-keep>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin data-keep>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Hanken+Grotesk:wght@400..700&display=swap" rel="stylesheet" data-keep>
+<style id="app-css">
+:root{
+  /* Layout: una columna angosta pensada para celular. Lista de personas arriba, reglas y botón de sorteo abajo; el sobre sellado es el momento central. */
+  --bg:#eef1f7; --surface:#ffffff; --ink:#111a35; --muted:#586285; --line:#d6dcea;
+  --accent:#c0304a; --accent-ink:#ffffff; --accent-soft:#fbe6ea;
+  --ok:#1c7f55; --ok-soft:#dff3ea;
+  --kraft:#e4d3ae; --kraft-2:#cdb98f; --kraft-3:#d8c59c;
+  --card-paper:#ffffff; --card-ink:#111a35;
+  --overlay:rgba(9,14,34,.985); --overlay-ink:#eef1fa;
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0c1228; --surface:#151d3d; --ink:#edf0fa; --muted:#98a3c7; --line:#29335f;
+    --accent:#ff6f87; --accent-ink:#1a0a10; --accent-soft:rgba(255,111,135,.15);
+    --ok:#62d6a1; --ok-soft:rgba(98,214,161,.16);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0c1228; --surface:#151d3d; --ink:#edf0fa; --muted:#98a3c7; --line:#29335f;
+  --accent:#ff6f87; --accent-ink:#1a0a10; --accent-soft:rgba(255,111,135,.15);
+  --ok:#62d6a1; --ok-soft:rgba(98,214,161,.16);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 140px}
+.top{display:flex;align-items:center;gap:14px;padding:6px 0 22px}
+.top svg{flex:none}
+h1{margin:0;font:800 40px/1 var(--display);letter-spacing:-.025em;text-wrap:balance}
+.tag{margin:6px 0 0;color:var(--muted);font-size:15px}
+h2{display:flex;align-items:baseline;gap:10px;margin:0 0 12px;font:700 22px/1.2 var(--display);letter-spacing:-.01em;text-wrap:balance}
+.count{font:600 14px var(--body);color:var(--muted);font-variant-numeric:tabular-nums}
+section{margin:0 0 30px}
+.lead{margin:0 0 14px;color:var(--muted);font-size:15px;max-width:65ch}
+
+.note{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:0 0 22px;padding:10px 14px;border:1px dashed var(--accent);border-radius:12px;background:var(--accent-soft);font-size:15px}
+.link{background:none;border:0;padding:6px 0;color:var(--accent);font-weight:600;text-decoration:underline;cursor:pointer;min-height:36px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;font-size:15px;text-decoration:none;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.small{min-height:38px;padding:0 13px;font-size:14px}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--accent);border-color:transparent}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+.add{display:flex;gap:8px;margin:0 0 14px}
+.add input{flex:1;min-width:0;min-height:48px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:16px}
+.err{margin:-4px 0 12px;color:var(--accent);font-size:14px;font-weight:600}
+
+.list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.card,.row{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.card-head{display:flex;align-items:center;gap:12px}
+.avatar{flex:none;width:40px;height:40px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font:800 18px var(--display)}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar.c-photo{width:54px;height:54px;font-size:24px}
+.avatar.lg{width:64px;height:64px;font-size:26px}
+.who{flex:1;min-width:0}
+.nm{font-weight:700;overflow-wrap:anywhere}
+.sub{color:var(--muted);font-size:13.5px;line-height:1.4;overflow-wrap:anywhere}
+.panel{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:grid;gap:16px}
+.field{display:grid;gap:8px}
+.lbl{font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:2px;padding:2px 2px 2px 12px;border-radius:999px;background:var(--accent-soft);font-size:14px;font-weight:600}
+.chip button{width:30px;height:30px;border:0;border-radius:50%;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:var(--muted)}
+.chip button:hover{color:var(--accent)}
+.empty{color:var(--muted);font-size:14px}
+select{width:100%;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:16px}
+select[disabled]{opacity:.5}
+
+.rules{margin:0 0 14px;padding:0;list-style:none;display:grid;gap:8px}
+.rules li{padding-left:14px;border-left:3px solid var(--accent);max-width:65ch}
+.switch{display:flex;align-items:center;gap:12px;min-height:44px;cursor:pointer}
+.switch input{width:22px;height:22px;accent-color:var(--accent);flex:none}
+
+.cta{position:fixed;left:0;right:0;bottom:0;padding:28px 16px 14px;background:linear-gradient(to bottom,transparent,var(--bg) 40%);pointer-events:none}
+.cta-in{max-width:560px;margin:0 auto;display:grid;gap:8px;pointer-events:auto}
+.cta .btn{min-height:52px;font-size:17px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.cta .err{margin:0;text-align:center;background:var(--bg);padding:6px 8px;border-radius:10px}
+.hint{margin:0;text-align:center;color:var(--muted);font-size:14px}
+
+.row{display:grid;gap:10px}
+.row-main{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.row-actions{display:flex;flex-wrap:wrap;gap:8px}
+.pill{flex:none;padding:2px 10px;border-radius:999px;font-size:12.5px;font-weight:700;background:var(--accent-soft);color:var(--accent)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.fb{width:100%;min-height:84px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:14px;resize:none}
+.small-note{margin:0;color:var(--muted);font-size:13.5px}
+.confirm{display:grid;gap:10px;padding:14px;border:1px solid var(--accent);border-radius:14px;background:var(--accent-soft)}
+.confirm p{margin:0}
+.confirm .row-actions{margin-top:2px}
+
+.photo-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.who-line{display:flex;align-items:center;gap:10px;min-width:0}
+.tel{width:100%;min-width:0;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:16px}
+.tel-line{display:flex;gap:8px}
+.link.inline{padding:0;min-height:0;font-size:inherit}
+.log{list-style:none;margin:0 0 8px;padding:0;border-top:1px solid var(--line)}
+.log li{display:grid;grid-template-columns:max-content 1fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.log time{min-width:7.8em;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin:0 0 22px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.tab{min-height:44px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-weight:700;font-size:15px;cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.who-pick{display:grid;gap:8px}
+.btn.wide{width:100%;min-height:52px;font-size:17px;margin-top:6px}
+
+.ideas-in{width:100%;min-height:76px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:16px;resize:vertical}
+.txt{width:100%;min-height:48px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:16px}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;letter-spacing:.08em}
+input.code{text-transform:uppercase}
+.pub{display:grid;gap:14px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.pub .lead{margin:0}
+.ideas{margin:0 0 16px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.09);text-align:left}
+.ideas .lbl{color:rgba(238,241,250,.72)}
+.ideas ul{margin:6px 0 0;padding-left:18px}
+.ideas p{margin:6px 0 0;opacity:.8;font-size:15px}
+
+/* Sobre */
+.overlay{position:fixed;inset:0;z-index:50;display:grid;padding:16px;overflow:auto;background:var(--overlay);color:var(--overlay-ink)}
+.ov-body{width:100%;max-width:420px;margin:auto;text-align:center}
+.ov-eyebrow{margin:0;font:700 15px var(--body);letter-spacing:.04em;opacity:.8}
+.ov-hint{margin:0 0 16px;font-size:15px;opacity:.85}
+.ov-actions{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.ov-actions .btn.ov-ghost{background:transparent;border-color:rgba(255,255,255,.3);color:var(--overlay-ink)}
+.env{position:relative;width:min(320px,82vw);aspect-ratio:3/2;margin:96px auto 30px;perspective:900px}
+.layer{position:absolute;inset:0}
+.env-back{background:var(--kraft-2);border-radius:6px}
+.env-card{inset:6% 7% auto 7%;height:84%;z-index:1;background:var(--card-paper);color:var(--card-ink);border-radius:4px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:4px;transition:transform .8s cubic-bezier(.2,.8,.2,1) .3s}
+.c-small{font-size:13px;font-weight:600;letter-spacing:.03em;color:#586285}
+.c-big{font:800 clamp(26px,8vw,34px)/1.05 var(--display);letter-spacing:-.02em;overflow-wrap:anywhere;text-wrap:balance}
+.env-front{z-index:2;background:var(--kraft);clip-path:polygon(0 0,50% 56%,100% 0,100% 100%,0 100%)}
+.env-flap{z-index:3;background:var(--kraft-3);clip-path:polygon(0 0,100% 0,50% 56%);transform-origin:top;transition:transform .5s ease,opacity .2s ease .3s}
+.seal{position:absolute;z-index:4;left:50%;top:56%;width:56px;height:56px;margin:-28px 0 0 -28px;transition:opacity .25s,transform .25s;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.is-open .env-card{transform:translateY(-52%)}
+.is-open .env-flap{transform:rotateX(180deg);opacity:0}
+.is-open .seal{opacity:0;transform:scale(.6)}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important}
+}
+</style>
+</head>
+<body>
+<script id="sorteo-data" type="application/json">null</script>
+<script id="app-js">
+const SHELL = '<div class="wrap"><header class="top"><span id="logo"></span><div><h1>Amigo secreto</h1><p class="tag">Nadie saca a sus padres ni a sus hermanos.</p></div></header><main id="app"></main></div><div id="overlay"></div><input id="photo-input" type="file" accept="image/*" hidden>';
+document.body.insertAdjacentHTML('afterbegin', SHELL);
+/* LOGIC START */
+const KEY = 'amigo-secreto-v1';
+
+function EXAMPLE(){
+  return {
+    nextId: 11, example: true, ex: 2, avoidSwap: false, draw: null, log: [],
+    people: [
+      {id:'p1',  name:'Carmen', parents:[], siblings:[]},
+      {id:'p2',  name:'Luis',   parents:[], siblings:['p7']},
+      {id:'p3',  name:'Ana',    parents:['p1','p2'], siblings:[]},
+      {id:'p4',  name:'Pedro',  parents:['p1','p2'], siblings:[]},
+      {id:'p5',  name:'Marta',  parents:['p1','p2'], siblings:[]},
+      {id:'p6',  name:'Diego',  parents:[], siblings:[]},
+      {id:'p7',  name:'Jorge',  parents:[], siblings:['p2']},
+      {id:'p8',  name:'Elena',  parents:[], siblings:[]},
+      {id:'p9',  name:'Sofía',  parents:['p7','p8'], siblings:[]},
+      {id:'p10', name:'Tomás',  parents:['p7','p8'], siblings:[]}
+    ]
+  };
+}
+
+function buildRel(S){
+  const P = {};
+  const root = {};
+  S.people.forEach(p => { P[p.id] = p; root[p.id] = p.id; });
+  const find = x => { while (root[x] !== x) { root[x] = root[root[x]]; x = root[x]; } return x; };
+  const union = (a, b) => { if (root[a] === undefined || root[b] === undefined) return; root[find(a)] = find(b); };
+  const byParent = {};
+  S.people.forEach(p => {
+    p.siblings.forEach(s => union(p.id, s));
+    p.parents.forEach(q => { (byParent[q] = byParent[q] || []).push(p.id); });
+  });
+  Object.values(byParent).forEach(kids => kids.slice(1).forEach(k => union(kids[0], k)));
+  const kind = (a, b) => {
+    if (a === b) return 'self';
+    if (P[a].parents.includes(b)) return 'padre';
+    if (P[b].parents.includes(a)) return 'hijo';
+    if (find(a) === find(b)) return 'hermano';
+    return null;
+  };
+  return { P, kind, forbidden: (a, b) => !!kind(a, b) };
+}
+
+function shuffle(a){
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function findAssignment(S){
+  const rel = buildRel(S);
+  const ids = S.people.map(p => p.id);
+  const opts = {};
+  ids.forEach(a => { opts[a] = ids.filter(b => !rel.forbidden(a, b)); });
+  if (ids.some(a => !opts[a].length)) return null;
+  for (let t = 0; t < 40; t++) {
+    const assign = {};
+    const taken = new Set();
+    let nodes = 0;
+    const solve = () => {
+      let best = null, bl = null;
+      for (const a of ids) {
+        if (assign[a] !== undefined) continue;
+        const l = opts[a].filter(b => !taken.has(b) && !(S.avoidSwap && assign[b] === a));
+        if (!l.length) return false;
+        if (!bl || l.length < bl.length || (l.length === bl.length && Math.random() < 0.5)) { best = a; bl = l; }
+      }
+      if (best === null) return true;
+      if (++nodes > 5000) return false;
+      shuffle(bl);
+      for (const b of bl) {
+        assign[best] = b; taken.add(b);
+        if (solve()) return true;
+        delete assign[best]; taken.delete(b);
+      }
+      return false;
+    };
+    if (solve()) return assign;
+  }
+  return null;
+}
+function waNumber(raw){
+  if (!raw) return '';
+  const plus = String(raw).trim().startsWith('+');
+  const d = String(raw).replace(/\D/g, '');
+  if (!d) return '';
+  if (plus) return d;
+  if (d.startsWith('56') && d.length >= 11) return d;
+  if (d.length === 9 && d.startsWith('9')) return '56' + d;
+  return d;
+}
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function genCode(){
+  const out = [];
+  while (out.length < 6) {
+    const b = crypto.getRandomValues(new Uint8Array(1))[0];
+    if (b < 248) out.push(CODE_ALPHABET[b % 31]);
+  }
+  return out.join('');
+}
+const normCode = c => String(c || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+const showCode = c => c;
+const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return btoa(s); };
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function deriveKey(code, salt){
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(normCode(code)), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:250000, hash:'SHA-256' }, km, { name:'AES-GCM', length:256 }, false, ['encrypt', 'decrypt']);
+}
+async function seal(code, obj){
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(code, salt);
+  const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(obj)));
+  return { s: b64(salt), i: b64(iv), c: b64(new Uint8Array(ct)) };
+}
+async function unseal(code, blob){
+  const key = await deriveKey(code, unb64(blob.s));
+  const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv: unb64(blob.i) }, key, unb64(blob.c));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+/* LOGIC END */
+
+/* ---------- estado ---------- */
+function load(){
+  try {
+    const t = localStorage.getItem(KEY);
+    if (!t) return null;
+    const d = JSON.parse(t);
+    if (d && Array.isArray(d.people)) {
+      if (d.example && d.ex !== 2 && !d.draw) return null;
+      d.log = Array.isArray(d.log) ? d.log : [];
+      return d;
+    }
+  } catch (e) {}
+  return null;
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+let S = load() || EXAMPLE();
+if (S.draw) {
+  S.draw.codes = {};
+  S.people.forEach(p => { S.draw.codes[p.id] = p.name; });
+}
+const APP_URL = 'https://claude.ai/artifact/GWK59U7Q1ymzdy54UKrPyJ';
+const LOCAL_ORG = (() => { try { return !!localStorage.getItem(KEY); } catch (e) { return false; } })();
+let PUB = null, ROLE = 'org';
+const ui = { lCode:'', adminOk:false, aErr:'', aForgot:false, bulk:false, tab:'sobre', who:'', pWho:'', pCode:'', pErr:'', pBusy:false, pubBusy:false, pubMsg:'', ideasEdit:null, photoFor:null, photoErr:null, telEdit:null, logAll:false, open:null, draft:'', addMsg:'', msg:'', confirmReset:false, copied:null, fallback:null, reveal:null, focusAdd:false };
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const person = id => S.people.find(p => p.id === id);
+
+function log(text){
+  S.log = S.log || [];
+  S.log.push({ t: Date.now(), e: text });
+  if (S.log.length > 200) S.log = S.log.slice(-200);
+  save();
+}
+function fmt(t){
+  try { return new Date(t).toLocaleString('es-CL', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', hour12:false }); }
+  catch (e) { return new Date(t).toISOString().slice(0, 16).replace('T', ' '); }
+}
+function avatar(p, cls){
+  return '<div class="avatar' + (cls ? ' ' + cls : '') + '" aria-hidden="true">' +
+    (p.photo ? '<img src="' + esc(p.photo) + '" alt="">' : esc(p.name.charAt(0).toUpperCase())) + '</div>';
+}
+function msgFor(id){
+  const p = person(id), r = person(S.draw.assign[id]);
+  if (S.draw.published && S.draw.codes && S.draw.codes[id]) {
+    return 'Hola ' + p.name + '. Ya está el sorteo del amigo secreto. Entra a ' + (S.shareUrl || APP_URL) + ', elige tu nombre y escribe tu nombre como clave.';
+  }
+  return 'Hola ' + p.name + '. En el amigo secreto de la familia te toca regalarle a ' + r.name + '. Guarda el secreto.';
+}
+function waUrl(id){
+  return 'https://wa.me/' + waNumber(person(id).phone) + '?text=' + encodeURIComponent(msgFor(id));
+}
+function photoToData(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('img')); };
+    img.onload = () => {
+      const s = Math.min(img.naturalWidth, img.naturalHeight);
+      const sx = (img.naturalWidth - s) / 2, sy = (img.naturalHeight - s) / 2;
+      const c = document.createElement('canvas');
+      c.width = c.height = 192;
+      c.getContext('2d').drawImage(img, sx, sy, s, s, 0, 0, 192, 192);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', 0.82));
+    };
+    img.src = url;
+  });
+}
+
+/* ---------- sello ---------- */
+function sealSVG(size){
+  const pts = [];
+  for (let i = 0; i < 120; i++) {
+    const t = i / 120 * Math.PI * 2, r = 27 + 2.2 * Math.sin(t * 11);
+    pts.push((32 + r * Math.cos(t)).toFixed(2) + ',' + (32 + r * Math.sin(t)).toFixed(2));
+  }
+  const star = [];
+  for (let i = 0; i < 10; i++) {
+    const t = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 4.2 : 9.5;
+    star.push((32 + r * Math.cos(t)).toFixed(2) + ',' + (32 + r * Math.sin(t)).toFixed(2));
+  }
+  return '<svg viewBox="0 0 64 64" width="' + size + '" height="' + size + '" aria-hidden="true">' +
+    '<polygon points="' + pts.join(' ') + '" fill="var(--accent)"/>' +
+    '<circle cx="32" cy="32" r="19" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/>' +
+    '<polygon points="' + star.join(' ') + '" fill="rgba(255,255,255,.85)"/></svg>';
+}
+$('#logo').innerHTML = sealSVG(52);
+
+/* ---------- vistas ---------- */
+function summary(id, rel){
+  const g = { padre:[], hijo:[], hermano:[] };
+  S.people.forEach(q => { const k = rel.kind(id, q.id); if (k && k !== 'self') g[k].push(q.name); });
+  const lab = { padre:['padre o madre','padres'], hijo:['hijo o hija','hijos'], hermano:['hermano o hermana','hermanos'] };
+  const parts = Object.keys(g).filter(k => g[k].length).map(k => g[k].join(', ') + ' (' + lab[k][g[k].length > 1 ? 1 : 0] + ')');
+  return parts.length ? 'No saca a ' + esc(parts.join(' · ')) : 'Sin parentescos cargados';
+}
+
+function chip(ownerId, field, targetId){
+  const t = person(targetId);
+  if (!t) return '';
+  return '<span class="chip">' + esc(t.name) +
+    '<button type="button" data-act="rm-chip" data-id="' + ownerId + '" data-field="' + field + '" data-target="' + targetId + '" aria-label="Quitar a ' + esc(t.name) + '">&times;</button></span>';
+}
+
+function panel(p, rel){
+  const avail = S.people.filter(q => !rel.forbidden(p.id, q.id));
+  const options = avail.map(q => '<option value="' + q.id + '">' + esc(q.name) + '</option>').join('');
+  const dis = avail.length ? '' : ' disabled';
+  return '<div class="panel">' +
+    '<div class="field"><span class="lbl">Foto</span><div class="photo-row">' + avatar(p, 'lg') +
+      '<button type="button" class="btn small" data-act="photo" data-id="' + p.id + '">' + (p.photo ? 'Cambiar foto' : 'Subir foto') + '</button>' +
+      (p.photo ? '<button type="button" class="btn small ghost" data-act="photo-rm" data-id="' + p.id + '">Quitar</button>' : '') + '</div>' +
+      (ui.photoErr === p.id ? '<p class="err" role="alert">No pude leer esa imagen. Prueba con otra foto.</p>' : '') + '</div>' +
+    '<div class="field"><label class="lbl" for="tel-' + p.id + '">Número de WhatsApp (opcional)</label>' +
+      '<input id="tel-' + p.id + '" class="tel" type="tel" inputmode="tel" autocomplete="off" placeholder="+56 9 1234 5678" value="' + esc(p.phone || '') + '" data-chg="tel" data-id="' + p.id + '"></div>' +
+    '<div class="field"><label class="lbl" for="ideas-' + p.id + '">Ideas de regalo para ' + esc(p.name) + ' (una por línea)</label>' +
+      '<textarea id="ideas-' + p.id + '" class="ideas-in" rows="3" maxlength="500" placeholder="Ej: libro de cocina, zapatillas talla 38" data-chg="ideas" data-id="' + p.id + '">' + esc(p.ideas || '') + '</textarea>' +
+      '<p class="small-note">Aparecen en el sobre de quien le toque regalarle.</p></div>' +
+    '<div class="field"><span class="lbl">Padre o madre</span>' +
+      '<div class="chips">' + (p.parents.length ? p.parents.map(id => chip(p.id, 'parents', id)).join('') : '<span class="empty">Ninguno cargado</span>') + '</div>' +
+      '<select id="add-par-' + p.id + '" data-chg="add-parent" data-id="' + p.id + '" aria-label="Agregar padre o madre de ' + esc(p.name) + '"' + dis + '><option value="">Agregar padre o madre…</option>' + options + '</select></div>' +
+    '<div class="field"><span class="lbl">Hermanos o hermanas</span>' +
+      '<div class="chips">' + (p.siblings.length ? p.siblings.map(id => chip(p.id, 'siblings', id)).join('') : '<span class="empty">Ninguno marcado a mano</span>') + '</div>' +
+      '<select id="add-sib-' + p.id + '" data-chg="add-sibling" data-id="' + p.id + '" aria-label="Agregar hermano o hermana de ' + esc(p.name) + '"' + dis + '><option value="">Agregar hermano o hermana…</option>' + options + '</select>' +
+      '<p class="small-note">Quienes comparten padre o madre ya cuentan como hermanos.</p></div>' +
+    '<div><button type="button" class="btn small danger" data-act="remove" data-id="' + p.id + '">Quitar a ' + esc(p.name) + ' del sorteo</button></div>' +
+  '</div>';
+}
+
+function setupView(){
+  const rel = buildRel(S);
+  const n = S.people.length;
+  const cards = S.people.map(p => {
+    const open = ui.open === p.id;
+    return '<li class="card"><div class="card-head">' +
+      avatar(p) +
+      '<div class="who"><div class="nm">' + esc(p.name) + '</div><div class="sub">' + summary(p.id, rel) + '</div></div>' +
+      '<button type="button" class="btn small" data-act="toggle" data-id="' + p.id + '" aria-expanded="' + open + '">' + (open ? 'Cerrar' : 'Parentescos') + '</button>' +
+      '</div>' + (open ? panel(p, rel) : '') + '</li>';
+  }).join('');
+  return (S.example ? '<p class="note"><span><strong>Familia de ejemplo.</strong> Los nombres son de muestra.</span><button type="button" class="link" data-act="clear">Vaciar y cargar la mía</button></p>' : '') +
+    '<section><h2>Quiénes juegan <span class="count">' + n + '</span></h2>' +
+    '<form id="add-form" class="add" autocomplete="off"><label class="sr" for="add-name">Nombre de la persona</label>' +
+    '<input id="add-name" type="text" maxlength="40" placeholder="Nombre de la persona" enterkeyhint="done" value="' + esc(ui.draft) + '">' +
+    '<button class="btn primary" type="submit">Agregar</button></form>' +
+    (ui.addMsg ? '<p class="err" role="alert">' + esc(ui.addMsg) + '</p>' : '') +
+    (ui.bulk
+      ? '<div class="field" style="margin:0 0 14px"><label class="lbl" for="bulk">Pega los nombres, uno por línea o separados por coma</label>' +
+        '<textarea id="bulk" class="ideas-in" rows="5" placeholder="Carmen&#10;Luis&#10;Ana"></textarea>' +
+        '<div class="row-actions"><button type="button" class="btn small primary" data-act="bulk-add">Agregar todos</button><button type="button" class="btn small" data-act="bulk-toggle">Cancelar</button></div></div>'
+      : '<p style="margin:-6px 0 14px"><button type="button" class="link" data-act="bulk-toggle">Pegar una lista de nombres</button></p>') +
+    (n ? '<ul class="list">' + cards + '</ul>' : '<p class="empty">Todavía no hay nadie. Agrega a la primera persona.</p>') +
+    '</section>' +
+    '<section><h2>Reglas del sorteo</h2><ul class="rules">' +
+      '<li>Nadie se saca a sí mismo.</li>' +
+      '<li>Nadie saca a sus padres ni a sus hijos.</li>' +
+      '<li>Nadie saca a sus hermanos, ni a quienes marques como hermanos.</li></ul>' +
+    '<label class="switch" for="opt-swap"><input id="opt-swap" type="checkbox" data-chg="swap"' + (S.avoidSwap ? ' checked' : '') + '><span>Evitar que dos personas se saquen entre sí</span></label></section>' +
+    logView() +
+    '<div class="cta"><div class="cta-in">' +
+      (ui.msg ? '<p class="err" role="alert">' + esc(ui.msg) + '</p>' : '') +
+      (n < 3 ? '<p class="hint">Agrega al menos 3 personas para sortear.</p>' : '') +
+      '<button type="button" class="btn primary" data-act="draw"' + (n < 3 ? ' disabled' : '') + '>Hacer el sorteo · ' + n + ' personas</button>' +
+    '</div></div>';
+}
+
+function logView(){
+  const all = (S.log || []).slice().reverse();
+  const shown = ui.logAll ? all : all.slice(0, 6);
+  const more = all.length > 6 ? '<button type="button" class="link" data-act="log-more">' + (ui.logAll ? 'Ver menos' : 'Ver todo (' + all.length + ')') + '</button>' : '';
+  return '<section><h2>Registro <span class="count">' + all.length + (all.length === 1 ? ' movimiento' : ' movimientos') + '</span></h2>' +
+    (all.length
+      ? '<ul class="log">' + shown.map(x => '<li><time>' + esc(fmt(x.t)) + '</time><span>' + esc(x.e) + '</span></li>').join('') + '</ul>' + more
+      : '<p class="empty">Todavía no hay movimientos. Aquí quedan el sorteo, quién abrió su sobre y los mensajes.</p>') +
+    '<p class="small-note">El registro nunca guarda a quién le tocó cada persona.</p></section>';
+}
+
+function orgView(){
+  const n = S.people.length;
+  const seen = S.draw.seen || {};
+  const done = Object.keys(seen).length;
+  const rows = S.people.map(p => {
+    const fb = ui.fallback && ui.fallback.id === p.id
+      ? '<textarea id="fb" class="fb" readonly>' + esc(ui.fallback.text) + '</textarea><p class="small-note">No pude copiar solo. Mantén pulsado el texto para copiarlo.</p>' : '';
+    const tel = ui.telEdit === p.id
+      ? '<div class="tel-line"><input id="tel-r-' + p.id + '" class="tel" type="tel" inputmode="tel" autocomplete="off" placeholder="+56 9 1234 5678" aria-label="Número de WhatsApp de ' + esc(p.name) + '" value="' + esc(p.phone || '') + '" data-chg="tel" data-id="' + p.id + '"><button type="button" class="btn small" data-act="tel-done">Listo</button></div>'
+      : '<p class="small-note">' + (p.phone ? 'WhatsApp ' + esc(p.phone) : 'Sin número: en WhatsApp eliges el contacto') + ' · <button type="button" class="link inline" data-act="tel-edit" data-id="' + p.id + '">' + (p.phone ? 'Cambiar' : 'Agregar número') + '</button></p>';
+    const ideas = ui.ideasEdit === p.id
+      ? '<div class="field"><label class="lbl" for="ideas-r-' + p.id + '">Ideas de regalo para ' + esc(p.name) + ' (una por línea)</label><textarea id="ideas-r-' + p.id + '" class="ideas-in" rows="3" maxlength="500" data-chg="ideas" data-id="' + p.id + '">' + esc(p.ideas || '') + '</textarea><div><button type="button" class="btn small" data-act="ideas-done">Listo</button></div></div>'
+      : '<p class="small-note">' + (p.ideas ? 'Ideas: ' + esc(p.ideas.split('\n')[0].slice(0, 50)) + (p.ideas.length > 50 || p.ideas.includes('\n') ? '…' : '') : 'Sin ideas de regalo') + ' · <button type="button" class="link inline" data-act="ideas-edit" data-id="' + p.id + '">' + (p.ideas ? 'Editar' : 'Agregar ideas') + '</button></p>';
+    const codeLine = false
+      ? '<p class="small-note">Código: <span class="code">' + esc(showCode(S.draw.codes[p.id])) + '</span></p>' : '';
+    return '<li class="row"><div class="row-main"><div class="who-line">' + avatar(p) + '<span class="nm">' + esc(p.name) + '</span></div>' +
+      (seen[p.id] ? '<span class="pill ok">Abrió su sobre</span>' : '<span class="pill">Sin abrir</span>') + '</div>' +
+      '<div class="row-actions">' +
+      '<a class="btn small" href="https://wa.me/" target="_blank" rel="noopener noreferrer" data-act="wa" data-id="' + p.id + '">Enviar por WhatsApp</a>' +
+      '<button type="button" class="btn small" data-act="copy" data-id="' + p.id + '">' + (ui.copied === p.id ? 'Copiado' : 'Copiar mensaje') + '</button></div>' + tel + ideas + codeLine + fb + '</li>';
+  }).join('');
+  return '<section><h2>Sobres listos <span class="count">' + done + ' de ' + n + ' abiertos</span></h2>' +
+    '<p class="lead">Manda a cada persona su mensaje por WhatsApp o cópialo. Cada persona abre su sobre en la pestaña Ver mi sobre escribiendo su nombre como clave.</p>' +
+    '<ul class="list">' + rows + '</ul></section>' +
+    publishView() +
+    '<section><p class="small-note">Los datos de las personas (números, fotos, ideas y registro) quedan guardados solo en este navegador.</p></section>' +
+    logView() +
+    '<section>' + (ui.confirmReset
+      ? '<div class="confirm"><p><strong>Esto borra los sobres actuales</strong> y vuelves a la lista de personas. Si ya publicaste, tendrás que publicar de nuevo el sorteo nuevo. ¿Seguimos?</p><div class="row-actions"><button type="button" class="btn small primary" data-act="reset-yes">Sí, rehacer</button><button type="button" class="btn small" data-act="reset-no">Cancelar</button></div></div>'
+      : '<button type="button" class="btn" data-act="reset">Rehacer el sorteo</button>') + '</section>';
+}
+
+function pickView(){
+  const opts = S.people.slice().sort((a, b) => a.name.localeCompare(b.name, 'es'))
+    .map(p => '<option value="' + p.id + '"' + (ui.who === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('');
+  return '<section><h2>¿Quién eres?</h2>' +
+    '<p class="lead">Elige tu nombre y escribe tu nombre como clave para abrir tu sobre.</p>' +
+    '<div class="who-pick"><label class="lbl" for="who">Tu nombre</label>' +
+    '<select id="who" data-chg="who"><option value="">Elige tu nombre…</option>' + opts + '</select>' +
+    '<label class="lbl" for="lcode">Tu clave (tu nombre)</label>' +
+    '<input id="lcode" class="txt" type="text" autocomplete="off" spellcheck="false" maxlength="40" placeholder="Escribe tu nombre" value="' + esc(ui.lCode) + '" data-chg="lcode">' +
+    (ui.pErr ? '<p class="err" role="alert">' + esc(ui.pErr) + '</p>' : '') +
+    '<button type="button" class="btn primary wide" id="who-go" data-act="go">Ver mi amigo secreto</button></div></section>';
+}
+
+function adminView(){
+  return '<section><h2>Clave de admin</h2>' +
+    '<p class="lead">Esta parte es solo para quien organiza el sorteo.</p>' +
+    '<form id="admin-form" class="who-pick" autocomplete="off">' +
+    '<label class="lbl" for="apin">Clave</label><input id="apin" class="txt" type="password" autocomplete="off" autocapitalize="none" maxlength="20">' +
+    (ui.aErr ? '<p class="err" role="alert">' + esc(ui.aErr) + '</p>' : '') +
+    '<button type="submit" class="btn primary wide">Entrar</button></form></section>';
+}
+function adminSubmit(){
+  const a = ($('#apin') || {}).value || '';
+  ui.aErr = '';
+  if (normCode(a) === 'admin') ui.adminOk = true;
+  else ui.aErr = 'Clave incorrecta.';
+  render();
+  if (ui.aErr) { const i = $('#apin'); if (i) i.focus(); }
+}
+
+function resultsView(){
+  return '<div class="tabs" role="group" aria-label="Vista">' +
+    '<button type="button" class="tab" data-act="tab" data-tab="sobre" aria-pressed="' + (ui.tab === 'sobre') + '">Ver mi sobre</button>' +
+    '<button type="button" class="tab" data-act="tab" data-tab="org" aria-pressed="' + (ui.tab === 'org') + '">Admin</button></div>' +
+    (ui.tab === 'org' ? (ui.adminOk ? orgView() : adminView()) : pickView());
+}
+
+function ideasHTML(t){
+  const items = String(t || '').split('\n').map(x => x.trim()).filter(Boolean);
+  return items.length ? '<ul>' + items.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '<p>Todavía no dejó ideas de regalo.</p>';
+}
+function revealLocal(id){
+  const r = person(S.draw.assign[id]);
+  return { to: r.name, photo: r.photo || '', ideas: r.ideas || '' };
+}
+
+function publishView(){
+  const pubd = S.draw.published;
+  return '<section><h2>Compartir cifrado</h2><div class="pub">' +
+    '<p class="lead">Publica el sorteo cifrado en esta página para que cada persona lo vea desde su celular: abre el link, elige su nombre y lo escribe como clave. La clave de cada persona es su nombre.</p>' +
+    '<div class="field"><label class="lbl" for="share-url">Link que recibirá cada persona</label>' +
+    '<input id="share-url" class="txt" type="url" inputmode="url" autocomplete="off" value="' + esc(S.shareUrl || APP_URL) + '" data-chg="share">' +
+    '<p class="small-note">En claude.ai, comparte la página con acceso para cualquiera que tenga el link. Si el link que te da es distinto, pégalo aquí.</p></div>' +
+    '<button type="button" class="btn primary" data-act="publish"' + (ui.pubBusy ? ' disabled' : '') + '>' + (ui.pubBusy ? 'Cifrando y publicando…' : pubd ? 'Actualizar publicación' : 'Publicar sorteo cifrado') + '</button>' +
+    (ui.pubMsg ? '<p class="small-note" role="status">' + esc(ui.pubMsg) + '</p>' : '') +
+    (pubd ? '<p class="small-note">Última publicación: ' + esc(fmt(pubd)) + '. Si cambias ideas, fotos o nombres, actualiza la publicación. Los mensajes ya llevan el link.</p>' : '') +
+    '</div></section>';
+}
+
+function participantView(){
+  const opts = PUB.people.slice().sort((a, b) => a.name.localeCompare(b.name, 'es'))
+    .map(p => '<option value="' + esc(p.id) + '"' + (ui.pWho === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('');
+  return '<section><h2>¿Quién eres?</h2>' +
+    '<p class="lead">Elige tu nombre y escribe tu nombre como clave. Con eso se abre tu sobre en este celular.</p>' +
+    '<div class="who-pick"><label class="lbl" for="pwho">Tu nombre</label>' +
+    '<select id="pwho" data-chg="pwho"><option value="">Elige tu nombre…</option>' + opts + '</select>' +
+    '<label class="lbl" for="pcode">Tu clave (tu nombre)</label>' +
+    '<input id="pcode" class="txt" type="text" autocomplete="off" spellcheck="false" maxlength="40" placeholder="Escribe tu nombre" value="' + esc(ui.pCode) + '" data-chg="pcode">' +
+    (ui.pErr ? '<p class="err" role="alert">' + esc(ui.pErr) + '</p>' : '') +
+    '<button type="button" class="btn primary wide" data-act="pgo"' + (ui.pBusy ? ' disabled' : '') + '>' + (ui.pBusy ? 'Abriendo…' : 'Ver mi amigo secreto') + '</button></div></section>' +
+    '<section><p class="small-note">Sorteo publicado el ' + esc(fmt(PUB.t)) + '.</p></section>';
+}
+
+/* ---------- publicar y abrir (cifrado) ---------- */
+function readPub(){
+  try {
+    const d = JSON.parse(document.getElementById('sorteo-data').textContent || 'null');
+    return d && d.blobs ? d : null;
+  } catch (e) { return null; }
+}
+function buildDoc(pub){
+  const keep = [...document.head.querySelectorAll('[data-keep]')].map(e => e.outerHTML).join('\n');
+  const css = document.getElementById('app-css').textContent;
+  const js = document.getElementById('app-js').textContent;
+  const data = JSON.stringify(pub).replace(/</g, '\\u003c');
+  return '<!DOCTYPE html>\n<html lang="es"><head>\n' + keep + '\n<style id="app-css">' + css + '</style>\n</head><body>\n' +
+    '<script id="sorteo-data" type="application/json">' + data + '<\/script>\n' +
+    '<script id="app-js">' + js + '<\/script>\n</body></html>';
+}
+async function publishDraw(){
+  if (!S.draw || ui.pubBusy) return;
+  ui.pubBusy = true; ui.pubMsg = ''; render();
+  const prev = { published: S.draw.published, codes: S.draw.codes };
+  let logged = false;
+  try {
+    const art = window.claude && window.claude.use ? await window.claude.use('artifact') : null;
+    if (!art) throw new Error('sin-capacidad');
+    const codes = Object.assign({}, S.draw.codes || {});
+    S.people.forEach(p => { codes[p.id] = p.name; });
+    const blobs = {};
+    for (const p of S.people) {
+      const r = person(S.draw.assign[p.id]);
+      blobs[p.id] = await seal(codes[p.id], { to: r.name, photo: r.photo || '', ideas: r.ideas || '' });
+    }
+    const pub = { v: 1, t: Date.now(), people: S.people.map(p => ({ id: p.id, name: p.name })), blobs };
+    S.draw.codes = codes; S.draw.published = pub.t;
+    log('Se publicó el sorteo cifrado'); logged = true;
+    await art.publish(buildDoc(pub));
+    ui.pubMsg = 'Listo, publicado.';
+  } catch (e) {
+    S.draw.published = prev.published; S.draw.codes = prev.codes;
+    if (logged) S.log.pop();
+    save();
+    ui.pubMsg = e && e.message === 'sin-capacidad'
+      ? 'Esta vista no permite publicar. Abre la página desde tu cuenta de claude.ai.'
+      : 'No pude publicar. Revisa que estés en tu cuenta y vuelve a intentar.';
+  }
+  ui.pubBusy = false; render();
+}
+async function participantOpen(){
+  if (!ui.pWho || !normCode(ui.pCode)) { ui.pErr = 'Elige tu nombre y escribe tu clave.'; return render(); }
+  ui.pBusy = true; ui.pErr = ''; render();
+  const me = PUB.people.find(p => p.id === ui.pWho);
+  try {
+    const data = await unseal(ui.pCode, PUB.blobs[ui.pWho]);
+    ui.pBusy = false;
+    render();
+    openOverlay({ id: null, name: me.name, data });
+  } catch (e) {
+    ui.pBusy = false; ui.pErr = 'La clave es tu nombre. Revisa que lo hayas escrito bien.';
+    render();
+  }
+}
+async function start(){
+  PUB = readPub();
+  let owner = false;
+  if (PUB) {
+    $('#app').innerHTML = '<p class="lead">Cargando…</p>';
+    try {
+      const u = window.claude && window.claude.use
+        ? await Promise.race([window.claude.use('user'), new Promise(r => setTimeout(() => r(null), 4000))]) : null;
+      if (u) owner = !!(await u.isOwner());
+    } catch (e) {}
+  }
+  ROLE = (PUB && !owner && !LOCAL_ORG) ? 'participant' : 'org';
+  render();
+}
+
+function render(){
+  $('#app').innerHTML = ROLE === 'participant' ? participantView() : (S.draw ? resultsView() : setupView());
+  if (ui.focusAdd) { const i = $('#add-name'); if (i) i.focus(); ui.focusAdd = false; }
+  if (ui.fallback) { const t = $('#fb'); if (t) { t.focus(); t.select(); } }
+}
+
+/* ---------- sobre ---------- */
+function footClosed(name){
+  return '<p class="ov-hint">Confirma que eres ' + esc(name) + ' y que nadie más está mirando.</p>' +
+    '<div class="ov-actions"><button type="button" class="btn primary" id="ov-open" data-act="open-env">Abrir sobre</button>' +
+    '<button type="button" class="btn ov-ghost" data-act="close">Cancelar</button></div>';
+}
+function footOpen(d){
+  return '<div class="ideas"><span class="lbl">Ideas de regalo para ' + esc(d.to) + '</span>' + ideasHTML(d.ideas) + '</div>' +
+    '<p class="ov-hint">Memoriza el nombre. Oculta el sobre antes de pasar el celular.</p>' +
+    '<div class="ov-actions"><button type="button" class="btn primary" id="ov-close" data-act="close">Ocultar sobre</button></div>';
+}
+function openOverlay(rv){
+  ui.reveal = rv;
+  $('#overlay').innerHTML = '<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="ov-title"><div class="ov-body">' +
+    '<p class="ov-eyebrow" id="ov-title">Sobre de ' + esc(rv.name) + '</p>' +
+    '<div class="env" id="env"><div class="layer env-back"></div><div class="layer env-card" id="env-card" aria-live="polite"></div>' +
+    '<div class="layer env-front"></div><div class="layer env-flap"></div><div class="seal">' + sealSVG(56) + '</div></div>' +
+    '<div id="ov-foot">' + footClosed(rv.name) + '</div></div></div>';
+  $('#ov-open').focus();
+}
+function openEnvelope(){
+  const rv = ui.reveal;
+  if (!rv) return;
+  const d = rv.data;
+  if (rv.id) {
+    S.draw.seen = S.draw.seen || {};
+    S.draw.seen[rv.id] = true;
+    log(rv.name + ' abrió su sobre');
+  }
+  $('#env-card').innerHTML = avatar({ name: d.to, photo: d.photo }, 'c-photo') + '<span class="c-small">Te toca regalarle a</span><span class="c-big">' + esc(d.to) + '</span>';
+  $('#env').classList.add('is-open');
+  $('#ov-foot').innerHTML = footOpen(d);
+  $('#ov-close').focus();
+}
+function closeOverlay(){
+  const rv = ui.reveal;
+  ui.reveal = null; ui.who = ''; ui.pWho = ''; ui.pCode = ''; ui.lCode = ''; ui.pErr = '';
+  $('#overlay').innerHTML = '';
+  render();
+  const b = (rv && rv.id && document.querySelector('[data-act="open"][data-id="' + rv.id + '"]')) || $('#who') || $('#pwho');
+  if (b) b.focus();
+}
+
+/* ---------- acciones ---------- */
+function addPerson(){
+  const name = ui.draft.trim().replace(/\s+/g, ' ');
+  ui.addMsg = '';
+  if (!name) { ui.addMsg = 'Escribe un nombre.'; }
+  else if (S.people.some(p => p.name.toLowerCase() === name.toLowerCase())) { ui.addMsg = 'Ya hay alguien con ese nombre. Agrega un apellido o una inicial.'; }
+  else {
+    S.people.push({ id: 'p' + S.nextId++, name, parents: [], siblings: [] });
+    ui.draft = ''; ui.msg = '';
+    log('Se agregó a ' + name);
+  }
+  ui.focusAdd = true;
+  render();
+}
+
+function removePerson(id){
+  const gone = person(id);
+  S.people = S.people.filter(p => p.id !== id);
+  S.people.forEach(p => {
+    p.parents = p.parents.filter(x => x !== id);
+    p.siblings = p.siblings.filter(x => x !== id);
+  });
+  if (ui.open === id) ui.open = null;
+  if (gone) log('Se quitó a ' + gone.name + ' de la lista');
+  render();
+}
+
+function doDraw(){
+  if (S.people.length < 3) { ui.msg = 'Agrega al menos 3 personas.'; return render(); }
+  const rel = buildRel(S);
+  const stuck = S.people.find(a => S.people.every(b => rel.forbidden(a.id, b.id)));
+  if (stuck) { ui.msg = stuck.name + ' no tiene a quién regalarle con estos parentescos. Revisa los parentescos o suma más personas.'; return render(); }
+  const assign = findAssignment(S);
+  if (!assign) {
+    ui.msg = S.avoidSwap
+      ? 'No encontré un sorteo con estas reglas. Prueba sin "evitar que se saquen entre sí" o revisa los parentescos.'
+      : 'No encontré un sorteo con estas reglas. Revisa los parentescos o suma más personas.';
+    return render();
+  }
+  const codes = {};
+  S.people.forEach(p => { codes[p.id] = p.name; });
+  S.draw = { assign, seen: {}, codes };
+  ui.adminOk = true;
+  ui.msg = ''; ui.open = null; ui.copied = null; ui.fallback = null;
+  log('Se hizo el sorteo con ' + S.people.length + ' personas');
+  ui.tab = 'org';
+  render();
+  window.scrollTo(0, 0);
+}
+
+async function copyMsg(id){
+  const text = msgFor(id);
+  try {
+    await navigator.clipboard.writeText(text);
+    ui.copied = id; ui.fallback = null;
+    log('Se copió el mensaje de ' + person(id).name);
+  } catch (e) {
+    ui.fallback = { id, text }; ui.copied = null;
+  }
+  render();
+  if (ui.copied === id) setTimeout(() => { if (ui.copied === id) { ui.copied = null; render(); } }, 2000);
+}
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.dataset.act, id = el.dataset.id;
+  if (act === 'toggle') { ui.open = ui.open === id ? null : id; render(); }
+  else if (act === 'remove') removePerson(id);
+  else if (act === 'rm-chip') {
+    const p = person(id), f = el.dataset.field, t = el.dataset.target;
+    p[f] = p[f].filter(x => x !== t);
+    if (f === 'siblings') { const o = person(t); if (o) o.siblings = o.siblings.filter(x => x !== id); }
+    save(); render();
+  }
+  else if (act === 'clear') { S = { nextId: 1, example: false, avoidSwap: false, draw: null, log: [], people: [] }; ui.open = null; ui.msg = ''; ui.focusAdd = true; save(); render(); }
+  else if (act === 'draw') doDraw();
+  else if (act === 'open') openOverlay({ id, name: person(id).name, data: revealLocal(id) });
+  else if (act === 'open-env') openEnvelope();
+  else if (act === 'close') closeOverlay();
+  else if (act === 'copy') copyMsg(id);
+  else if (act === 'tab') { ui.tab = el.dataset.tab; ui.who = ''; ui.lCode = ''; ui.pErr = ''; ui.aErr = ''; ui.aForgot = false; ui.adminOk = false; render(); }
+  else if (act === 'go') {
+    if (!ui.who || !normCode(ui.lCode)) { ui.pErr = 'Elige tu nombre y escribe tu clave.'; render(); }
+    else if (normCode(ui.lCode) !== normCode(S.draw.codes[ui.who])) { ui.pErr = 'La clave es tu nombre. Revisa que lo hayas escrito bien.'; ui.lCode = ''; render(); }
+    else { ui.pErr = ''; openOverlay({ id: ui.who, name: person(ui.who).name, data: revealLocal(ui.who) }); }
+  }
+  else if (act === 'a-forgot') { ui.aForgot = true; render(); }
+  else if (act === 'a-forgot-no') { ui.aForgot = false; render(); }
+  else if (act === 'a-forgot-yes') { S.draw = null; S.adminHash = null; S.adminSalt = null; ui.aForgot = false; ui.adminOk = false; log('Se borró el sorteo por clave olvidada'); render(); }
+  else if (act === 'ideas-edit') { ui.ideasEdit = id; render(); const i = $('#ideas-r-' + id); if (i) i.focus(); }
+  else if (act === 'ideas-done') { ui.ideasEdit = null; render(); }
+  else if (act === 'publish') publishDraw();
+  else if (act === 'bulk-toggle') { ui.bulk = !ui.bulk; ui.addMsg = ''; render(); const t = $('#bulk'); if (t) t.focus(); }
+  else if (act === 'bulk-add') {
+    const raw = ($('#bulk') || {}).value || '';
+    const names = raw.split(/[\n,;]+/).map(x => x.replace(/^[\s\-•*\d.)]+/, '').trim().replace(/\s+/g, ' ')).filter(Boolean);
+    let added = 0, dup = 0;
+    names.forEach(name => {
+      if (S.people.some(q => q.name.toLowerCase() === name.toLowerCase())) { dup++; return; }
+      S.people.push({ id: 'p' + S.nextId++, name: name.slice(0, 40), parents: [], siblings: [] }); added++;
+    });
+    if (added) log('Se agregaron ' + added + ' personas desde una lista');
+    ui.addMsg = added ? '' : 'No encontré nombres nuevos en la lista.';
+    if (added && dup) ui.addMsg = 'Agregué ' + added + '. Omití ' + dup + ' que ya estaban.';
+    ui.bulk = !added; ui.msg = ''; save(); render();
+  }
+  else if (act === 'pgo') participantOpen();
+  else if (act === 'photo') { ui.photoFor = id; const inp = $('#photo-input'); inp.value = ''; inp.click(); }
+  else if (act === 'photo-rm') { person(id).photo = null; ui.photoErr = null; save(); render(); }
+  else if (act === 'wa') {
+    el.href = waUrl(id);
+    log('Se abrió WhatsApp para enviar el mensaje a ' + person(id).name);
+    setTimeout(render, 400);
+  }
+  else if (act === 'tel-edit') { ui.telEdit = id; render(); const i = $('#tel-r-' + id); if (i) i.focus(); }
+  else if (act === 'tel-done') { ui.telEdit = null; render(); }
+  else if (act === 'log-more') { ui.logAll = !ui.logAll; render(); }
+  else if (act === 'reset') { ui.confirmReset = true; render(); }
+  else if (act === 'reset-no') { ui.confirmReset = false; render(); }
+  else if (act === 'reset-yes') { S.draw = null; ui.confirmReset = false; ui.copied = null; ui.fallback = null; log('Se borró el sorteo para rehacerlo'); render(); }
+});
+
+document.addEventListener('change', e => {
+  const el = e.target.closest('[data-chg]');
+  if (!el) return;
+  const k = el.dataset.chg, id = el.dataset.id;
+  if (k === 'pwho') { ui.pWho = el.value; }
+  else if (k === 'who') { ui.who = el.value; }
+  else if (k === 'swap') { S.avoidSwap = el.checked; ui.msg = ''; save(); render(); }
+  else if (k === 'add-parent' && el.value) { const p = person(id); p.parents.push(el.value); ui.msg = ''; save(); render(); }
+  else if (k === 'add-sibling' && el.value) {
+    const p = person(id), o = person(el.value);
+    p.siblings.push(o.id); o.siblings.push(p.id);
+    ui.msg = ''; save(); render();
+  }
+});
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'add-name') ui.draft = e.target.value;
+  else if (e.target.dataset && e.target.dataset.chg === 'tel') { const p = person(e.target.dataset.id); if (p) { p.phone = e.target.value.trim(); save(); } }
+  else if (e.target.dataset && e.target.dataset.chg === 'ideas') { const p = person(e.target.dataset.id); if (p) { p.ideas = e.target.value; save(); } }
+  else if (e.target.dataset && e.target.dataset.chg === 'share') { S.shareUrl = e.target.value.trim(); save(); }
+  else if (e.target.dataset && e.target.dataset.chg === 'pcode') { ui.pCode = e.target.value; }
+  else if (e.target.dataset && e.target.dataset.chg === 'lcode') { ui.lCode = e.target.value; }
+});
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'photo-input') return;
+  const f = e.target.files && e.target.files[0], id = ui.photoFor, p = id && person(id);
+  if (!f || !p) return;
+  try { p.photo = await photoToData(f); ui.photoErr = null; log('Se agregó la foto de ' + p.name); }
+  catch (err) { ui.photoErr = id; }
+  render();
+});
+document.addEventListener('submit', e => {
+  if (e.target.id === 'add-form') { e.preventDefault(); addPerson(); }
+  else if (e.target.id === 'admin-form') { e.preventDefault(); adminSubmit(); }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.reveal) closeOverlay(); });
+
+start();
+</script>
+</body>
+</html>
