@@ -12,7 +12,9 @@ App web para sortear el amigo secreto de la familia. Funciona en el celular, sin
 1. Carga a la familia: uno por uno o pegando una lista de nombres.
 2. En cada persona marca padres y hermanos, y si quieres agrega foto, WhatsApp e ideas de regalo.
 3. Haz el sorteo.
-4. Cada persona abre su sobre en **Ver mi sobre**: elige su nombre y escribe su nombre como clave.
-5. Quien organiza entra a **Admin** con la clave `admin` para mandar los mensajes por WhatsApp, ver el registro y rehacer el sorteo.
+4. Entra a **Admin** (clave `admin`) y toca **Preparar link para la familia**, luego **Enviar al grupo de WhatsApp**.
+5. Cada persona abre ese link en su celular, elige su nombre y escribe su nombre como clave para ver su sobre.
+
+El link lleva el sorteo cifrado. Si cambias ideas de regalo o rehaces el sorteo, prepara y manda el link de nuevo.
 
 Los datos se guardan solo en el navegador donde se usa la app.

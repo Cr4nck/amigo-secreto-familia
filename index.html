@@ -273,21 +273,23 @@ const normCode = c => String(c || '').normalize('NFD').replace(/[\u0300-\u036f]/
 const showCode = c => c;
 const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return btoa(s); };
 const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-async function deriveKey(code, salt){
+async function deriveKey(code, salt, it){
   const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(normCode(code)), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:250000, hash:'SHA-256' }, km, { name:'AES-GCM', length:256 }, false, ['encrypt', 'decrypt']);
+  return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations: it || 250000, hash:'SHA-256' }, km, { name:'AES-GCM', length:256 }, false, ['encrypt', 'decrypt']);
 }
-async function seal(code, obj){
+async function seal(code, obj, it){
   const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await deriveKey(code, salt);
+  const key = await deriveKey(code, salt, it);
   const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(obj)));
   return { s: b64(salt), i: b64(iv), c: b64(new Uint8Array(ct)) };
 }
-async function unseal(code, blob){
-  const key = await deriveKey(code, unb64(blob.s));
+async function unseal(code, blob, it){
+  const key = await deriveKey(code, unb64(blob.s), it);
   const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv: unb64(blob.i) }, key, unb64(blob.c));
   return JSON.parse(new TextDecoder().decode(pt));
 }
+const toB64url = t => btoa(unescape(encodeURIComponent(t))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const fromB64url = t => { t = t.replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '='; return decodeURIComponent(escape(atob(t))); };
 /* LOGIC END */
 
 /* ---------- estado ---------- */
@@ -314,7 +316,7 @@ if (S.draw) {
 const APP_URL = 'https://claude.ai/artifact/GWK59U7Q1ymzdy54UKrPyJ';
 const LOCAL_ORG = (() => { try { return !!localStorage.getItem(KEY); } catch (e) { return false; } })();
 let PUB = null, ROLE = 'org';
-const ui = { lCode:'', adminOk:false, aErr:'', aForgot:false, bulk:false, tab:'sobre', who:'', pWho:'', pCode:'', pErr:'', pBusy:false, pubBusy:false, pubMsg:'', ideasEdit:null, photoFor:null, photoErr:null, telEdit:null, logAll:false, open:null, draft:'', addMsg:'', msg:'', confirmReset:false, copied:null, fallback:null, reveal:null, focusAdd:false };
+const ui = { linkBusy:false, linkMsg:'', linkCopied:false, lCode:'', adminOk:false, aErr:'', aForgot:false, bulk:false, tab:'sobre', who:'', pWho:'', pCode:'', pErr:'', pBusy:false, pubBusy:false, pubMsg:'', ideasEdit:null, photoFor:null, photoErr:null, telEdit:null, logAll:false, open:null, draft:'', addMsg:'', msg:'', confirmReset:false, copied:null, fallback:null, reveal:null, focusAdd:false };
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -336,6 +338,9 @@ function avatar(p, cls){
 }
 function msgFor(id){
   const p = person(id), r = person(S.draw.assign[id]);
+  if (S.draw.shareLink) {
+    return 'Hola ' + p.name + '. Ya está el sorteo del amigo secreto. Entra a ' + S.draw.shareLink + ' , elige tu nombre y escribe tu nombre como clave.';
+  }
   if (S.draw.published && S.draw.codes && S.draw.codes[id]) {
     return 'Hola ' + p.name + '. Ya está el sorteo del amigo secreto. Entra a ' + (S.shareUrl || APP_URL) + ', elige tu nombre y escribe tu nombre como clave.';
   }
@@ -433,7 +438,7 @@ function setupView(){
       '<button type="button" class="btn small" data-act="toggle" data-id="' + p.id + '" aria-expanded="' + open + '">' + (open ? 'Cerrar' : 'Parentescos') + '</button>' +
       '</div>' + (open ? panel(p, rel) : '') + '</li>';
   }).join('');
-  return (S.example ? '<p class="note"><span><strong>Familia de ejemplo.</strong> Los nombres son de muestra.</span><button type="button" class="link" data-act="clear">Vaciar y cargar la mía</button></p>' : '') +
+  return (S.example ? '<p class="note"><span><strong>Familia de ejemplo.</strong> Esta pantalla es para quien organiza. Si te mandaron el sorteo, ábrelo desde el link del mensaje de WhatsApp.</span><button type="button" class="link" data-act="clear">Vaciar y cargar la mía</button></p>' : '') +
     '<section><h2>Quiénes juegan <span class="count">' + n + '</span></h2>' +
     '<form id="add-form" class="add" autocomplete="off"><label class="sr" for="add-name">Nombre de la persona</label>' +
     '<input id="add-name" type="text" maxlength="40" placeholder="Nombre de la persona" enterkeyhint="done" value="' + esc(ui.draft) + '">' +
@@ -494,7 +499,8 @@ function orgView(){
   return '<section><h2>Sobres listos <span class="count">' + done + ' de ' + n + ' abiertos</span></h2>' +
     '<p class="lead">Manda a cada persona su mensaje por WhatsApp o cópialo. Cada persona abre su sobre en la pestaña Ver mi sobre escribiendo su nombre como clave.</p>' +
     '<ul class="list">' + rows + '</ul></section>' +
-    publishView() +
+    shareView() +
+    (window.claude && window.claude.use ? publishView() : '') +
     '<section><p class="small-note">Los datos de las personas (números, fotos, ideas y registro) quedan guardados solo en este navegador.</p></section>' +
     logView() +
     '<section>' + (ui.confirmReset
@@ -548,6 +554,37 @@ function revealLocal(id){
   return { to: r.name, photo: r.photo || '', ideas: r.ideas || '' };
 }
 
+function groupMsg(L){
+  return 'Ya está el sorteo del amigo secreto. Entra a este link, elige tu nombre y escribe tu nombre como clave para ver a quién le regalas: ' + L;
+}
+function shareView(){
+  const L = S.draw.shareLink;
+  return '<section><h2>Mandar a la familia</h2><div class="pub">' +
+    '<p class="lead">Prepara un link con el sorteo cifrado. Cada persona lo abre en su celular, elige su nombre y escribe su nombre como clave.</p>' +
+    (L
+      ? '<a class="btn primary" href="https://wa.me/?text=' + encodeURIComponent(groupMsg(L)) + '" target="_blank" rel="noopener noreferrer" data-act="wa-group">Enviar al grupo de WhatsApp</a>' +
+        '<button type="button" class="btn" data-act="copy-link">' + (ui.linkCopied ? 'Link copiado' : 'Copiar link') + '</button>' +
+        '<p class="small-note">Si cambias ideas de regalo o rehaces el sorteo, prepara el link de nuevo y vuelve a mandarlo.</p>'
+      : '<button type="button" class="btn primary" data-act="make-link"' + (ui.linkBusy ? ' disabled' : '') + '>' + (ui.linkBusy ? 'Preparando el link…' : 'Preparar link para la familia') + '</button>') +
+    (ui.linkMsg ? '<p class="small-note" role="status">' + esc(ui.linkMsg) + '</p>' : '') +
+    '</div></section>';
+}
+async function makeLink(){
+  if (ui.linkBusy) return;
+  ui.linkBusy = true; ui.linkMsg = ''; render();
+  try {
+    const it = 60000, blobs = {};
+    for (const p of S.people) {
+      const r = person(S.draw.assign[p.id]);
+      blobs[p.id] = await seal(p.name, { to: r.name, ideas: r.ideas || '' }, it);
+    }
+    const pub = { v: 2, t: Date.now(), it, people: S.people.map(p => ({ id: p.id, name: p.name })), blobs };
+    S.draw.shareLink = location.origin + location.pathname + '#s=' + toB64url(JSON.stringify(pub));
+    log('Se preparó el link para la familia');
+  } catch (e) { ui.linkMsg = 'No pude preparar el link. Vuelve a intentar.'; }
+  ui.linkBusy = false; render();
+}
+
 function publishView(){
   const pubd = S.draw.published;
   return '<section><h2>Compartir cifrado</h2><div class="pub">' +
@@ -576,7 +613,16 @@ function participantView(){
 }
 
 /* ---------- publicar y abrir (cifrado) ---------- */
+let BADLINK = false;
 function readPub(){
+  if (location.hash.startsWith('#s=')) {
+    try {
+      const d = JSON.parse(fromB64url(location.hash.slice(3)));
+      if (d && d.blobs && d.people) { d.fromLink = true; return d; }
+    } catch (e) {}
+    BADLINK = true;
+    return null;
+  }
   try {
     const d = JSON.parse(document.getElementById('sorteo-data').textContent || 'null');
     return d && d.blobs ? d : null;
@@ -626,7 +672,7 @@ async function participantOpen(){
   ui.pBusy = true; ui.pErr = ''; render();
   const me = PUB.people.find(p => p.id === ui.pWho);
   try {
-    const data = await unseal(ui.pCode, PUB.blobs[ui.pWho]);
+    const data = await unseal(ui.pCode, PUB.blobs[ui.pWho], PUB.it);
     ui.pBusy = false;
     render();
     openOverlay({ id: null, name: me.name, data });
@@ -638,7 +684,7 @@ async function participantOpen(){
 async function start(){
   PUB = readPub();
   let owner = false;
-  if (PUB) {
+  if (PUB && !PUB.fromLink) {
     $('#app').innerHTML = '<p class="lead">Cargando…</p>';
     try {
       const u = window.claude && window.claude.use
@@ -646,11 +692,12 @@ async function start(){
       if (u) owner = !!(await u.isOwner());
     } catch (e) {}
   }
-  ROLE = (PUB && !owner && !LOCAL_ORG) ? 'participant' : 'org';
+  ROLE = BADLINK ? 'bad' : (PUB && (PUB.fromLink || (!owner && !LOCAL_ORG))) ? 'participant' : 'org';
   render();
 }
 
 function render(){
+  if (ROLE === 'bad') { $('#app').innerHTML = '<section><h2>El link llegó incompleto</h2><p class="lead">Pide que te lo manden de nuevo y ábrelo tocándolo directo en el mensaje de WhatsApp.</p></section>'; return; }
   $('#app').innerHTML = ROLE === 'participant' ? participantView() : (S.draw ? resultsView() : setupView());
   if (ui.focusAdd) { const i = $('#add-name'); if (i) i.focus(); ui.focusAdd = false; }
   if (ui.fallback) { const t = $('#fb'); if (t) { t.focus(); t.select(); } }
@@ -792,6 +839,13 @@ document.addEventListener('click', e => {
   else if (act === 'ideas-edit') { ui.ideasEdit = id; render(); const i = $('#ideas-r-' + id); if (i) i.focus(); }
   else if (act === 'ideas-done') { ui.ideasEdit = null; render(); }
   else if (act === 'publish') publishDraw();
+  else if (act === 'make-link') makeLink();
+  else if (act === 'wa-group') { log('Se abrió WhatsApp para mandar el link a la familia'); setTimeout(render, 400); }
+  else if (act === 'copy-link') {
+    navigator.clipboard.writeText(S.draw.shareLink)
+      .then(() => { ui.linkCopied = true; ui.linkMsg = ''; render(); setTimeout(() => { ui.linkCopied = false; render(); }, 2000); })
+      .catch(() => { ui.linkMsg = 'No pude copiar. Usa el botón de WhatsApp.'; render(); });
+  }
   else if (act === 'bulk-toggle') { ui.bulk = !ui.bulk; ui.addMsg = ''; render(); const t = $('#bulk'); if (t) t.focus(); }
   else if (act === 'bulk-add') {
     const raw = ($('#bulk') || {}).value || '';
@@ -840,7 +894,7 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'add-name') ui.draft = e.target.value;
   else if (e.target.dataset && e.target.dataset.chg === 'tel') { const p = person(e.target.dataset.id); if (p) { p.phone = e.target.value.trim(); save(); } }
-  else if (e.target.dataset && e.target.dataset.chg === 'ideas') { const p = person(e.target.dataset.id); if (p) { p.ideas = e.target.value; save(); } }
+  else if (e.target.dataset && e.target.dataset.chg === 'ideas') { const p = person(e.target.dataset.id); if (p) { p.ideas = e.target.value; if (S.draw) S.draw.shareLink = null; save(); } }
   else if (e.target.dataset && e.target.dataset.chg === 'share') { S.shareUrl = e.target.value.trim(); save(); }
   else if (e.target.dataset && e.target.dataset.chg === 'pcode') { ui.pCode = e.target.value; }
   else if (e.target.dataset && e.target.dataset.chg === 'lcode') { ui.lCode = e.target.value; }
@@ -859,6 +913,7 @@ document.addEventListener('submit', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.reveal) closeOverlay(); });
 
+window.addEventListener('hashchange', () => location.reload());
 start();
 </script>
 </body>
